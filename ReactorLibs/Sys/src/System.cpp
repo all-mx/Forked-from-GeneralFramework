@@ -4,10 +4,11 @@
 #include "Chassis.hpp"
 #include "led_ws2812.hpp"
 #include "Monitor.hpp"
-#include "bsp_log.h"
+#include "farcon.hpp"
 
 SystemType& System = SystemType::GetInstance();
 LedWs2812 sys_ledband;
+Farcon farcon;
 
 void SystemType::Init(bool Sc)
 {
@@ -25,6 +26,8 @@ void SystemType::Init(bool Sc)
     // 颜色偏置因子（用于校正颜色）
     sys_ledband.BiasFactor = Vec3(0.843f, 1.0f, 0.843f); 
 
+    farcon.init(&huart3);
+    odometer.Init(&huart6, true, false, false, true);
     // 自动开始自检
     if (Sc) status = Systems::SELF_CHECK;
 }
