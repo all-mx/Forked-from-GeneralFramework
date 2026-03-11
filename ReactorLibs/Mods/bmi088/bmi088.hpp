@@ -4,19 +4,22 @@
 #include "bsp_spi.hpp"
 
 // bmi088工作模式枚举
-typedef enum {
+typedef enum
+{
   BMI088_BLOCK_PERIODIC_MODE = 0, // 阻塞模式,周期性读取
 } BMI088_Work_Mode_e;
 
 /* BMI088数据*/
-struct BMI088_Data_t {
+struct BMI088_Data_t
+{
   float gyro[3];     // 陀螺仪数据,xyz
   float acc[3];      // 加速度计数据,xyz
   float temperature; // 温度
 };
 
 // BMI088 驱动类
-class BMI088 {
+class BMI088
+{
 private:
   BSP::SPI::Device *spi_acc = nullptr;
   BSP::SPI::Device *spi_gyro = nullptr;
@@ -37,6 +40,12 @@ private:
 
   bool _online = false;
   uint16_t init_error = 0; // 高8位acc，低8位gyro
+
+  // DMA传输缓存
+  uint8_t tx_buf_acc[8] = {0};
+  uint8_t rx_buf_acc[8] = {0};
+  uint8_t tx_buf_gyro[7] = {0};
+  uint8_t rx_buf_gyro[7] = {0};
 
   // 内部寄存器读写接口
   void _AccelRead(uint8_t reg, uint8_t *dataptr, uint8_t len);
@@ -68,13 +77,48 @@ public:
   void Update();
 
   /**
+   * @brief 触发加速度计的 DMA 异步读取
+   */
+  void TriggerAccelDMA();
+
+  /**
+   * @brief 解析加速度计的 DMA 接收数据
+   */
+  void ParseAccelDMA();
+
+  /**
+   * @brief 触发陀螺仪的 DMA 异步读取
+   */
+  void TriggerGyroDMA();
+
+  /**
+   * @brief 解析陀螺仪的 DMA 接收数据
+   */
+  void ParseGyroDMA();
+
+  /**
    * @brief 标定传感器（静止状态下进行，耗时较长）
    */
   void CalibrateIMU();
 
-  const float *GetGyro() const { return gyro; }
-  const float *GetAcc() const { return acc; }
-  float GetTemp() const { return temperature; }
-  bool IsOnline() const { return _online; }
-  uint16_t GetInitError() const { return init_error; }
+  const float *GetGyro() const
+  {
+    return gyro;
+  }
+  const float *GetAcc() const
+  {
+    return acc;
+  }
+  float GetTemp() const
+  {
+    return temperature;
+  }
+  bool IsOnline() const
+  {
+    return _online;
+  }
+  uint16_t GetInitError() const
+  {
+    return init_error;
+  }
 };

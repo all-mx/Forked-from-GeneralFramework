@@ -4,17 +4,20 @@
 #include "bsp_halport.hpp"
 
 // 辅助向量求模函数
-static float NormOf3d(const float *vec) {
+static float NormOf3d(const float *vec)
+{
   return sqrtf(vec[0] * vec[0] + vec[1] * vec[1] + vec[2] * vec[2]);
 }
 
-void BMI088::_delay_ms(uint32_t ms) {
+void BMI088::_delay_ms(uint32_t ms)
+{
   if (ms == 0)
     ms = 1;
   HAL_Delay(ms);
 }
 
-void BMI088::_AccelRead(uint8_t reg, uint8_t *dataptr, uint8_t len) {
+void BMI088::_AccelRead(uint8_t reg, uint8_t *dataptr, uint8_t len)
+{
   if (len > 6)
     return;
   uint8_t tx[8] = {0};
@@ -25,7 +28,8 @@ void BMI088::_AccelRead(uint8_t reg, uint8_t *dataptr, uint8_t len) {
   memcpy(dataptr, rx + 2, len);
 }
 
-void BMI088::_GyroRead(uint8_t reg, uint8_t *dataptr, uint8_t len) {
+void BMI088::_GyroRead(uint8_t reg, uint8_t *dataptr, uint8_t len)
+{
   if (len > 6)
     return;
   uint8_t tx[7] = {0};
@@ -35,17 +39,20 @@ void BMI088::_GyroRead(uint8_t reg, uint8_t *dataptr, uint8_t len) {
   memcpy(dataptr, rx + 1, len);
 }
 
-void BMI088::_AccelWriteSingleReg(uint8_t reg, uint8_t data) {
+void BMI088::_AccelWriteSingleReg(uint8_t reg, uint8_t data)
+{
   uint8_t tx[2] = {reg, data};
   spi_acc->Transmit(tx, 2);
 }
 
-void BMI088::_GyroWriteSingleReg(uint8_t reg, uint8_t data) {
+void BMI088::_GyroWriteSingleReg(uint8_t reg, uint8_t data)
+{
   uint8_t tx[2] = {reg, data};
   spi_gyro->Transmit(tx, 2);
 }
 
-uint8_t BMI088::_AccelInit() {
+uint8_t BMI088::_AccelInit()
+{
   uint8_t whoami_check = 0;
 
   // 先做一次虚假读取，切换IMU至SPI模式
@@ -82,19 +89,22 @@ uint8_t BMI088::_AccelInit() {
        BMI088_INT_MAP_DATA_ERROR}};
 
   uint8_t data = 0;
-  for (size_t i = 0; i < sizeof(Accel_Init_Table) / 3; i++) {
+  for (size_t i = 0; i < sizeof(Accel_Init_Table) / 3; i++)
+  {
     _AccelWriteSingleReg(Accel_Init_Table[i][0], Accel_Init_Table[i][1]);
     _delay_ms(10);
     _AccelRead(Accel_Init_Table[i][0], &data, 1);
     _delay_ms(10);
-    if (data != Accel_Init_Table[i][1]) {
+    if (data != Accel_Init_Table[i][1])
+    {
       return Accel_Init_Table[i][2]; // Error
     }
   }
   return 0; // Success
 }
 
-uint8_t BMI088::_GyroInit() {
+uint8_t BMI088::_GyroInit()
+{
   _GyroWriteSingleReg(BMI088_GYRO_SOFTRESET, BMI088_GYRO_SOFTRESET_VALUE);
   _delay_ms(100);
 
@@ -123,19 +133,22 @@ uint8_t BMI088::_GyroInit() {
        BMI088_GYRO_INT3_INT4_IO_MAP_ERROR}};
 
   uint8_t data = 0;
-  for (size_t i = 0; i < sizeof(Gyro_Init_Table) / 3; i++) {
+  for (size_t i = 0; i < sizeof(Gyro_Init_Table) / 3; i++)
+  {
     _GyroWriteSingleReg(Gyro_Init_Table[i][0], Gyro_Init_Table[i][1]);
     _delay_ms(5);
     _GyroRead(Gyro_Init_Table[i][0], &data, 1);
     _delay_ms(5);
-    if (data != Gyro_Init_Table[i][1]) {
+    if (data != Gyro_Init_Table[i][1])
+    {
       return Gyro_Init_Table[i][2];
     }
   }
   return 0;
 }
 
-bool BMI088::Init(BSP::SPI::Device *_spi_acc, BSP::SPI::Device *_spi_gyro) {
+bool BMI088::Init(BSP::SPI::Device *_spi_acc, BSP::SPI::Device *_spi_gyro)
+{
   spi_acc = _spi_acc;
   spi_gyro = _spi_gyro;
   _delay_ms(50); // 上电稳定延时
@@ -145,7 +158,8 @@ bool BMI088::Init(BSP::SPI::Device *_spi_acc, BSP::SPI::Device *_spi_gyro) {
 
   init_error = (err_acc << 8) | err_gyro;
 
-  if (err_acc == 0 && err_gyro == 0) {
+  if (err_acc == 0 && err_gyro == 0)
+  {
     _online = true;
     CalibrateIMU(); // 初始化时默认执行一次标定
     return true;
@@ -154,7 +168,8 @@ bool BMI088::Init(BSP::SPI::Device *_spi_acc, BSP::SPI::Device *_spi_gyro) {
   return false;
 }
 
-void BMI088::Update() {
+void BMI088::Update()
+{
   if (!_online)
     return;
 
@@ -162,13 +177,15 @@ void BMI088::Update() {
 
   // 读取加速度计
   _AccelRead(BMI088_ACCEL_XOUT_L, buf, 6);
-  for (uint8_t i = 0; i < 3; i++) {
+  for (uint8_t i = 0; i < 3; i++)
+  {
     acc[i] = acc_coef * (float)(int16_t)(((buf[2 * i + 1]) << 8) | buf[2 * i]);
   }
 
   // 读取陀螺仪
   _GyroRead(BMI088_GYRO_X_L, buf, 6);
-  for (uint8_t i = 0; i < 3; i++) {
+  for (uint8_t i = 0; i < 3; i++)
+  {
     gyro[i] =
         gyro_sen * (float)(int16_t)(((buf[2 * i + 1]) << 8) | buf[2 * i]) -
         gyro_offset[i];
@@ -181,7 +198,46 @@ void BMI088::Update() {
       BMI088_TEMP_OFFSET;
 }
 
-void BMI088::CalibrateIMU() {
+void BMI088::TriggerAccelDMA()
+{
+  if (!_online)
+    return;
+  tx_buf_acc[0] = 0x80 | BMI088_ACCEL_XOUT_L;
+  spi_acc->TransRecvDMA(tx_buf_acc, rx_buf_acc, 8);
+}
+
+void BMI088::ParseAccelDMA()
+{
+  if (!_online)
+    return;
+  for (uint8_t i = 0; i < 3; i++)
+  {
+    // 加速度计有效数据从 rx_buf_acc[2] 开始
+    acc[i] = acc_coef * (float)(int16_t)(((rx_buf_acc[2 * i + 3]) << 8) | rx_buf_acc[2 * i + 2]);
+  }
+}
+
+void BMI088::TriggerGyroDMA()
+{
+  if (!_online)
+    return;
+  tx_buf_gyro[0] = 0x80 | BMI088_GYRO_X_L;
+  spi_gyro->TransRecvDMA(tx_buf_gyro, rx_buf_gyro, 7);
+}
+
+void BMI088::ParseGyroDMA()
+{
+  if (!_online)
+    return;
+  for (uint8_t i = 0; i < 3; i++)
+  {
+    // 陀螺仪有效数据从 rx_buf_gyro[1] 开始
+    gyro[i] = gyro_sen * (float)(int16_t)(((rx_buf_gyro[2 * i + 2]) << 8) | rx_buf_gyro[2 * i + 1]) - gyro_offset[i];
+  }
+}
+
+void BMI088::CalibrateIMU()
+{
   acc_coef = BMI088_ACCEL_6G_SEN;
   gyro_sen = BMI088_GYRO_2000_SEN;
 
@@ -191,44 +247,54 @@ void BMI088::CalibrateIMU() {
   float gyroDiff[3] = {0}, gNormDiff = 0;
 
   int max_retries = 3;
-  while (max_retries-- > 0) {
+  while (max_retries-- > 0)
+  {
     gNorm = 0;
     float gyroSum[3] = {0, 0, 0}; // 添加用于累加的临时变量
     for (uint8_t i = 0; i < 3; i++)
       gyro_offset[i] = 0;
 
-    for (uint16_t i = 0; i < CaliTimes; ++i) {
+    for (uint16_t i = 0; i < CaliTimes; ++i)
+    {
       Update(); // 获取一次读数
 
       gNormTemp = NormOf3d(acc);
       gNorm += gNormTemp;
-      for (uint8_t jj = 0; jj < 3; jj++) {
+      for (uint8_t jj = 0; jj < 3; jj++)
+      {
         gyroSum[jj] +=
             gyro[jj]; // 使用 gyroSum 累加，而不是直接污染 gyro_offset
       }
 
-      if (i == 0) {
+      if (i == 0)
+      {
         gNormMax = gNormMin = gNormTemp;
-        for (uint8_t j = 0; j < 3; ++j) {
+        for (uint8_t j = 0; j < 3; ++j)
+        {
           gyroMax[j] = gyro[j];
           gyroMin[j] = gyro[j];
         }
-      } else {
+      }
+      else
+      {
         gNormMax = gNormMax > gNormTemp ? gNormMax : gNormTemp;
         gNormMin = gNormMin < gNormTemp ? gNormMin : gNormTemp;
-        for (uint8_t j = 0; j < 3; ++j) {
+        for (uint8_t j = 0; j < 3; ++j)
+        {
           gyroMax[j] = gyroMax[j] > gyro[j] ? gyroMax[j] : gyro[j];
           gyroMin[j] = gyroMin[j] < gyro[j] ? gyroMin[j] : gyro[j];
         }
       }
 
       gNormDiff = gNormMax - gNormMin;
-      for (uint8_t j = 0; j < 3; ++j) {
+      for (uint8_t j = 0; j < 3; ++j)
+      {
         gyroDiff[j] = gyroMax[j] - gyroMin[j];
       }
 
       if (gNormDiff > 0.5f || gyroDiff[0] > 0.15f || gyroDiff[1] > 0.15f ||
-          gyroDiff[2] > 0.15f) {
+          gyroDiff[2] > 0.15f)
+      {
         break; // 运动幅度过大，重新标定
       }
       _delay_ms(1);
@@ -242,13 +308,15 @@ void BMI088::CalibrateIMU() {
     if (!(gNormDiff > 0.5f || fabsf(gNorm - 9.8f) > 0.5f ||
           gyroDiff[0] > 0.15f || gyroDiff[1] > 0.15f || gyroDiff[2] > 0.15f ||
           fabsf(gyro_offset[0]) > 0.01f || fabsf(gyro_offset[1]) > 0.01f ||
-          fabsf(gyro_offset[2]) > 0.01f)) {
+          fabsf(gyro_offset[2]) > 0.01f))
+    {
       // 标定成功，跳出重试循环
       break;
     }
   }
 
-  if (max_retries <= 0) {
+  if (max_retries <= 0)
+  {
     // 标定依然失败，使用预设零偏
     gyro_offset[0] = 0.0f;
     gyro_offset[1] = 0.0f;
