@@ -5,7 +5,7 @@
 
 ///////////////////////////////////////////     VEC3        /////////////////////////////////////////////////////
 /*********      Byte_Vec3编码解码      **********/
-void Vec3::ToBytes(uint8_t* buffer)
+void Vec3::ToBytes(uint8_t* buffer) const
 {
     memcpy(buffer, &(this->x), sizeof(float));
     memcpy(buffer + sizeof(float), &(this->y), sizeof(float));
@@ -20,7 +20,7 @@ void Vec3::FromBytes(const uint8_t* buffer)
 
 
 /*********      Vec3归一化      **********/
-Vec3 Vec3::Norm() 
+Vec3 Vec3::Norm() const
 {
     Vec3 v = *this;
     // 计算向量的模
@@ -41,14 +41,14 @@ Vec3 Vec3::Norm()
 }
 
 /*********      Vec3长度      **********/
-float Vec3::Length() 
+float Vec3::Length() const
 {
     // 计算向量的模
     return sqrt(this->x * this->x + this->y * this->y + this->z * this->z);
 }
 
 /**********      Vec3转2      *********/
-Vec2 Vec3::ToVec2()
+Vec2 Vec3::ToVec2() const
 {
     Vec2 v(this->x, this->y);
     return v;
@@ -58,7 +58,7 @@ Vec2 Vec3::ToVec2()
 
 ///////////////////////////////////////////          VEC2        /////////////////////////////////////////////////////
 /*********      Byte_Vec2编码解码      **********/
-void Vec2::ToBytes(uint8_t* buffer)
+void Vec2::ToBytes(uint8_t* buffer) const
 {
     memcpy(buffer, &(this->x), sizeof(float));
     memcpy(buffer + sizeof(float), &(this->y), sizeof(float));
@@ -70,7 +70,7 @@ void Vec2::FromBytes(const uint8_t* buffer)
 }
 
 /*********      Vec2    归一化      **********/
-Vec2 Vec2::Norm() 
+Vec2 Vec2::Norm() const
 {
     Vec2 v = *this;
     // 计算向量的模
@@ -89,7 +89,7 @@ Vec2 Vec2::Norm()
 }
 
 /*********      Vec2长度      **********/
-float Vec2::Length() 
+float Vec2::Length() const
 {
     // 计算向量的模
     return sqrt(this->x * this->x + this->y * this->y);
@@ -97,7 +97,7 @@ float Vec2::Length()
 
 /*********      Vec2角度      **********/
 ///@brief 计算弧度制（RAD）的角度值
-float Vec2::Angle() 
+float Vec2::Angle() const
 {
     // 使用atan2函数计算向量的角度，atan2返回值范围是[-π, π]
     return atan2(this->y, this->x);
@@ -105,7 +105,7 @@ float Vec2::Angle()
 
 /*********      Vec2 旋转      **********/
 ///@brief 计算弧度制（RAD）的角度值
-Vec2 Vec2::Rotate(float thetaRad)
+Vec2 Vec2::Rotate(float thetaRad) const
 {
     Vec2 result;
     float cosTheta = cosf(thetaRad);
@@ -119,7 +119,7 @@ Vec2 Vec2::Rotate(float thetaRad)
 }
 
 /*********      Vec2转3      **********/
-Vec3 Vec2::ToVec3()
+Vec3 Vec2::ToVec3() const
 {
     Vec3 v(this->x, this->y, 0);
     return v;

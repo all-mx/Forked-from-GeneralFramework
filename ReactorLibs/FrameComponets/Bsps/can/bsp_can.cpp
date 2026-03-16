@@ -1,5 +1,5 @@
 #include "bsp_can.hpp"
-#include "bsp_halport.hpp"
+#include "bsp_hardware.hpp"
 #include "bsp_dwt.hpp"
 #include "bsp_log.hpp"
 #include "string.h"

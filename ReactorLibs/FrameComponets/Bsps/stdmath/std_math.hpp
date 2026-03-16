@@ -33,14 +33,14 @@ public:
   }
 
   // 基本运算
-  Vec2 Norm();    // 获取归一化向量
-  float Length(); // 获取向量长度
-  float Angle();
-  Vec2 Rotate(float angRad);
-  Vec3 ToVec3();
+  Vec2 Norm() const;    // 获取归一化向量
+  float Length() const; // 获取向量长度
+  float Angle() const;
+  Vec2 Rotate(float angRad) const;
+  Vec3 ToVec3() const;
 
   // 类型转换
-  void ToBytes(uint8_t *buffer);         // 将Vec2转换入buffer
+  void ToBytes(uint8_t *buffer) const;         // 将Vec2转换入buffer
   void FromBytes(const uint8_t *buffer); // 从buffer恢复Vec2
 
   // 友元函数重载运算符
@@ -106,11 +106,11 @@ public:
   Vec3() : x(0), y(0), z(0)
   {
   }
-  Vec3 Norm();                   // 获取归一化向量
-  float Length();                // 获取向量长度
-  void ToBytes(uint8_t *buffer); // 将Vec3转换入buffer
+  Vec3 Norm() const;                   // 获取归一化向量
+  float Length() const;                // 获取向量长度
+  void ToBytes(uint8_t *buffer) const; // 将Vec3转换入buffer
   void FromBytes(const uint8_t *buffer);
-  Vec2 ToVec2();
+  Vec2 ToVec2() const;
 
   // 友元函数重载运算符
   friend Vec3 operator+(const Vec3 &lhs, const Vec3 &rhs);

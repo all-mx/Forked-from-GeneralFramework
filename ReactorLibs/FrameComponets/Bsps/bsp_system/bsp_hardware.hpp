@@ -1,5 +1,6 @@
 #pragma once
 #include "bsp_uart.hpp"
+#include "bsp_can.hpp"
 
 namespace Hardware
 {
@@ -12,4 +13,12 @@ namespace Hardware
     extern BSP::UART::UartID huart_odom;
     /// @brief 其他串口
     extern BSP::UART::UartID huart_other;
+
+    /***---------------     框架CAN    ---------------***/
+    /// @brief 框架所用CAN句柄
+    extern BSP::CAN::CanID hcan_main;
+    /// @brief 框架所用CAN句柄
+    extern BSP::CAN::CanID hcan_sub;
+
+    
 }

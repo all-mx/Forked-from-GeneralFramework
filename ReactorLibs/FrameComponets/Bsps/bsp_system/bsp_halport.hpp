@@ -1,5 +1,4 @@
 #pragma once
-#include "bsp_can.hpp"
 
 #define USE_REAL_HAL
 
@@ -69,11 +68,7 @@ namespace Hardware
     /// @note 如果本标志位被激活，日志会被同步发送到 UART_HOST
     extern bool RTTLogAtUart;
     
-    /***---------------     框架CAN    ---------------***/
-    /// @brief 框架所用CAN句柄
-    extern BSP::CAN::CanID hcan_main;
-    /// @brief 框架所用CAN句柄
-    extern BSP::CAN::CanID hcan_sub;
+    
 
     /***---------------     框架定时器    ---------------***/
     /// @brief WS2812灯带定时器
