@@ -7,11 +7,11 @@
 
 #include "relay.hpp"
 
-void Relay::Init(GPIO_TypeDef *GPIOx, uint32_t Pin, TriggerType trig_type)
+void Relay::Init(Pin pin, TriggerType trig_type)
 {
-    BspGpio_InstRegist(&_gpio_inst, GPIOx, Pin);
+    _gpio_inst = BSP::GPIO::Inst(pin);
     _trig_type = trig_type;
-    initialized = true;
+    initialized = _gpio_inst.IsValid();
     _Set(OFF);
 }
 
@@ -19,16 +19,16 @@ void Relay::_Set(State state)
 {
     if (!initialized) return;
 
-    uint32_t pin_state;
+    bool pin_state = false;
     if (_trig_type == HIGH_ON)
     {
-        pin_state = (state == ON) ? GPIO_PIN_SET : GPIO_PIN_RESET;
+        pin_state = (state == ON);
     }
     else 
     {
-        pin_state = (state == ON) ? GPIO_PIN_RESET : GPIO_PIN_SET;
+        pin_state = (state != ON);
     }
-    BspGpio_SetState(&_gpio_inst, pin_state);
+    _gpio_inst.Write(pin_state);
     _state = state;
 }
 
