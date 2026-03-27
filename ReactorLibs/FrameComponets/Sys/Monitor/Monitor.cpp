@@ -30,7 +30,8 @@ void Monitor::TrackLog()
     if (track_count < 1)   return; // 没有跟踪变量，直接返回
 
     memset(track_send_buf, 0, 64);
-    size_t used_bytes = 0;
+    track_send_buf[0] = '[';
+    size_t used_bytes = 1;
 
     for(int i = 0; i < track_count; i++)
     {
@@ -106,7 +107,9 @@ void Monitor::TrackLogJustFloat()
     // 清空缓冲区 (复用 vofa_buf，因为它在头文件里定义了但没被用)
     // 你的 Monitor.hpp 里定义了 byte vofa_buf[64]，这里正好用上
     // 8个变量 * 4字节 + 4字节帧尾 = 36字节，64字节足够了
-    size_t used_bytes = 0;
+    memset(vofa_buf, 0, 64);
+    vofa_buf[0] = '[';
+    size_t used_bytes = 1;
 
     for(int i = 0; i < track_count; i++)
     {

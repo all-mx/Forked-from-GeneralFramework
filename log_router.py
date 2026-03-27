@@ -13,6 +13,12 @@ init(autoreset=True)
 # ================= 配置区域 =================
 # 默认串口配置
 DEFAULT_BAUD_RATE = 921600
+FRAME_START_BYTE = ord("[")
+SERIAL_REOPEN_DELAY_SEC = 0.05
+SERIAL_REOPEN_COOLDOWN_SEC = 0.3
+JUSTFLOAT_TAIL = b"\x00\x00\x80\x7f"
+FIREWATER_MAX_FRAME_LEN = 64
+FIREWATER_IDLE_FLUSH_SEC = 0.02
 
 # 是否显示每一行接收到的原始数据 (调试开关)，可通过终端动态配置
 DEBUG_SHOW_RAW_LINE = False
@@ -172,10 +178,10 @@ def main():
         print("-" * 40)
 
         buffer = bytearray()
+        last_reopen_time = 0.0
+        last_rx_time = time.time()
         # 预先将所有的前缀转换为 bytes，以优化判断速度
         prefixes_bytes = [p.encode("utf-8") for p in LOG_STYLES.keys()]
-        # 提取所有前缀的首字节，以便在纯二进制流中快速定位下一个可能的日志起始位置
-        prefix_first_bytes = list(set([bytes([p[0]]) for p in prefixes_bytes]))
 
         def could_be_log(buf):
             # 判断 buf 是否可能是一条彩色日志的开头
@@ -186,6 +192,40 @@ def main():
                     return True
             return False
 
+        def drop_garbled_and_resync(garbled_bytes):
+            # 乱码提示只展示前 80 字节，避免刷屏
+            preview = repr(garbled_bytes[:80])
+            if len(garbled_bytes) > 80:
+                preview += "..."
+            print(
+                f"{Fore.YELLOW}[System] 丢弃乱码（{preview}），已恢复脚本。",
+                flush=True,
+            )
+
+        def quick_restart_serial():
+            nonlocal ser, last_reopen_time
+            now = time.time()
+            if now - last_reopen_time < SERIAL_REOPEN_COOLDOWN_SEC:
+                return
+            last_reopen_time = now
+
+            print(f"{Fore.YELLOW}[System] 检测到帧错误，快速重启串口中...", flush=True)
+            try:
+                if ser.is_open:
+                    ser.close()
+            except:
+                pass
+
+            time.sleep(SERIAL_REOPEN_DELAY_SEC)
+            try:
+                ser = serial.Serial(port_name, baud_rate, timeout=0.1)
+                print(
+                    f"{Fore.GREEN}[System] 串口已恢复: {port_name} @ {baud_rate}",
+                    flush=True,
+                )
+            except serial.SerialException as e:
+                print(f"{Fore.RED}[System] 串口重启失败: {e}", flush=True)
+
         while True:
             # 使用 read 获取可用数据，避免 readline 在无 '\n' 的纯二进制流上阻塞
             # in_waiting 是当前串口缓冲区已接收的字节数
@@ -193,9 +233,23 @@ def main():
             if not data:
                 continue
 
+            last_rx_time = time.time()
             buffer.extend(data)
 
             while buffer:
+                # 下位机重上电时可能出现帧错误/乱码；合法数据起始必须为 '['
+                if buffer[0] != FRAME_START_BYTE:
+                    next_start = buffer.find(b"[")
+                    if next_start == -1:
+                        garbled = bytes(buffer)
+                        buffer.clear()
+                    else:
+                        garbled = bytes(buffer[:next_start])
+                        del buffer[:next_start]
+                    drop_garbled_and_resync(garbled)
+                    quick_restart_serial()
+                    continue
+
                 if could_be_log(buffer):
                     # 如果匹配了日志的前缀特征，则尝试寻找 '\n' 来截取完整的一行
                     nl_idx = buffer.find(b"\n")
@@ -258,20 +312,50 @@ def main():
                         else:
                             break  # 跳出内层缓冲区处理，继续从串口读取新数据
                 else:
-                    # 头字符不符合任何预设的 Log 前缀，说明属于纯二进制波形或普通字符
-                    # 寻找任何一个合法前缀的首字符，作为可能的新 Log 的起始点
-                    next_starts = [buffer.find(b, 1) for b in prefix_first_bytes]
-                    valid_starts = [s for s in next_starts if s != -1]
+                    # 非日志分支：优先按 JustFloat 帧尾解析；否则按 FireWater(ASCII) 解析
+                    tail_idx = buffer.find(JUSTFLOAT_TAIL, 1)
+                    if tail_idx != -1:
+                        frame_end = tail_idx + len(JUSTFLOAT_TAIL)
+                        if frame_end > 1:
+                            # 去掉起始 '['，其余原样转发给 VOFA+
+                            forwarder.send_waveform(bytes(buffer[1:frame_end]))
+                        del buffer[:frame_end]
+                        continue
 
-                    if valid_starts:
-                        next_start = min(valid_starts)
-                        # 截止到下个潜在日志起点前的数据，全数丢给波形转发（解决粘包且低延迟）
-                        forwarder.send_waveform(bytes(buffer[:next_start]))
-                        del buffer[:next_start]
+                    payload = buffer[1:]
+                    is_ascii_firewater = all(
+                        (32 <= b <= 126) or b in (9, 10, 13) for b in payload
+                    )
+
+                    if is_ascii_firewater:
+                        next_start = buffer.find(b"[", 1)
+                        if next_start != -1:
+                            if next_start > 1:
+                                forwarder.send_waveform(bytes(buffer[1:next_start]))
+                            del buffer[:next_start]
+                        elif len(buffer) > FIREWATER_MAX_FRAME_LEN:
+                            # FireWater 单帧由 64B 缓冲区构建，超过该长度仍无完整边界，判为异常
+                            garbled = bytes(buffer)
+                            buffer.clear()
+                            drop_garbled_and_resync(garbled)
+                            quick_restart_serial()
+                        elif time.time() - last_rx_time >= FIREWATER_IDLE_FLUSH_SEC:
+                            # 空闲间隙视为一帧结束，避免单帧长时间滞留
+                            if len(buffer) > 1:
+                                forwarder.send_waveform(bytes(buffer[1:]))
+                            buffer.clear()
+                        else:
+                            break
                     else:
-                        # 整个缓冲区都没有潜在日志起点，全量直接转发
-                        forwarder.send_waveform(bytes(buffer))
-                        buffer.clear()
+                        # 非 ASCII 且暂未发现 JustFloat 尾，通常是 JustFloat 帧还没收全
+                        # 防止极端异常数据无限堆积
+                        if len(buffer) > 96:
+                            garbled = bytes(buffer)
+                            buffer.clear()
+                            drop_garbled_and_resync(garbled)
+                            quick_restart_serial()
+                        else:
+                            break
 
     except serial.SerialException as e:
         print(f"{Fore.RED}Serial Error: {e}")
