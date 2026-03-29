@@ -15,10 +15,6 @@ void Action_of_Dege(StateCore *core);
  */
 void MainFrameCpp()
 {
-  // 当前主入口默认挂载 IMU 里程计验证应用，避免多个测试同时输出。
-  IMUOdom_Test &imu_odom_test = IMUOdom_Test::GetInstance();
-  System.RegistApp(imu_odom_test);
-
   // 配置状态图为简并模式
   example_graph.Degenerate(Action_of_Dege);
 
@@ -29,5 +25,4 @@ void MainFrameCpp()
 
 void Action_of_Dege(StateCore *core)
 {
-  // 简并模式的占位动作
 }

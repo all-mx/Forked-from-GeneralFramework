@@ -7,6 +7,7 @@
 #include "semphr.h"
 
 #include "bsp_dwt.hpp"
+#include "bsp_log.hpp"
 #include "motor_dji.hpp"
 #include "System.hpp"
 #include "RtosCpp.hpp"
@@ -64,8 +65,18 @@ static void CoroutineStub(void *arg)
 void Reactor46H_Initialize()
 {
     Hardware::Config_Hardwares();
+    // 初始化日志系统
+    BspLog_Init();
+    BspLog_LogInfo("\n\n");
+
+    // 必须要，因为很多外部设备都要时间初始化
+    // 尤其是C620 / C610，第一次上电时如果不等它们自检完就发指令，可能会冲爆
+    HAL_Delay(4000);
+
     System.Init();
     MainFrameCpp();
+
+    HAL_Delay(500);
 
     // 接管RTOS控制权
     Reactor46H_TakeOverRTOS();
